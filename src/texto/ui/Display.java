@@ -5,17 +5,17 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.LayoutManager;
 import java.awt.event.ActionEvent;
-import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.AbstractAction;
-import javax.swing.Action;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import texto.model.Challenge;
 
 public class Display {
@@ -39,7 +39,6 @@ public class Display {
     private List<Challenge> challenges;
     private Challenge challenge;
     private int index = 0;
-    private boolean started;
     
     public Display(List<Challenge> challenges){
         super();
@@ -55,38 +54,51 @@ public class Display {
         rightPanelTextArea = new JTextArea();
         leftPanelScrollPane = new JScrollPane(leftPanelTextArea);
         rightPanelScrollPane = new JScrollPane(rightPanelTextArea);
-        rightPanelButton = new JButton(getAction());
+        rightPanelButton = new JButton(getAction());        
         
+    }        
+    
+    private void getNewChallenge(){
+        if (index < 0){
+            index = 0;
+        }
+        if (index >= challenges.size()){
+            index = 0;
+        }
+        challenge = challenges.get(index);
+        index++;
+    }
+    
+    private void prepareComponents(){
+        if (challenge == null){
+            throw new RuntimeException("challenge == null");
+        }
+        leftPanelTextArea.setText(challenge.getOriginalData());
+        rightPanelTextArea.setText(challenge.getWrongData());
+        rightPanelTextArea.setBackground(Color.WHITE);
+    }
+    
+    private boolean canProgress(){
+        return challenge.compare(rightPanelTextArea.getText());
+    }
+    
+    private void colorTextArea(){
+        if (canProgress()){
+            rightPanelTextArea.setBackground(Color.GREEN);
+        }
+        else{
+            rightPanelTextArea.setBackground(Color.RED);        
+        }
     }
     
     private AbstractAction getAction(){
         return new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (!started){
-                    started = true;
-                }
-                else{
-                    if (index >= challenges.size()){
-                        index = 0;
-                    }
-                }
-                if (challenge == null){
-                    challenge = challenges.get(index);
-                    leftPanelTextArea.setText(challenge.getOriginalData());
-                    rightPanelTextArea.setText(challenge.getWrongData());    
-                }
-                if (challenge.compare(rightPanelTextArea.getText())){
-                    index++;
-                    challenge = null;
-                    rightPanelTextArea.setBackground(Color.WHITE);
-                    challenge = challenges.get(index);
-                    leftPanelTextArea.setText(challenge.getOriginalData());
-                    rightPanelTextArea.setText(challenge.getWrongData()); 
-                }
-                else{
-                    rightPanelTextArea.setBackground(Color.RED);
-                }
+                if (canProgress()){
+                    getNewChallenge();
+                    prepareComponents();                    
+                }                
             }
         };
     }
@@ -114,6 +126,11 @@ public class Display {
         frame.getContentPane().add(mainPanel);
         frame.pack();
         frame.setVisible(true);
+        
+        rightPanelTextArea.getDocument().addDocumentListener(getDocumentListener());
+        
+        getNewChallenge();
+        prepareComponents();
     }
     
     private void fit(java.awt.Component c){        
@@ -121,6 +138,25 @@ public class Display {
         c.setMinimumSize(d);        
         c.setMaximumSize(d);     
         c.setPreferredSize(d);
+    }
+
+    private DocumentListener getDocumentListener() {
+        return new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                colorTextArea();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                colorTextArea();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                colorTextArea();  
+            }
+        };
     }
     
 }

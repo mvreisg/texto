@@ -11,7 +11,9 @@ public class Challenge {
     }
     
     public boolean compare(String value){
-        return (value.contentEquals(originalData));
+        String newValue = value.replace("\r\n", "\n");
+        String newData = originalData.replace("\r\n", "\n");
+        return newData.contentEquals(newValue);
     }
     
     public String getOriginalData(){
